@@ -3,9 +3,9 @@ package org.rakulee.retrofitexample
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Log
+import androidx.activity.viewModels
 import androidx.databinding.DataBindingUtil
 import androidx.recyclerview.widget.DividerItemDecoration
-import com.google.gson.Gson
 import org.rakulee.retrofitexample.databinding.ActivityMainBinding
 import org.rakulee.retrofitexample.network.CoinGeckoExchangeListApi
 import retrofit2.Call
@@ -17,10 +17,12 @@ import retrofit2.converter.gson.GsonConverterFactory
 class MainActivity : AppCompatActivity() {
 
     lateinit var binding : ActivityMainBinding
+    val viewModel : TestViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = DataBindingUtil.setContentView(this, R.layout.activity_main)
+        binding.lifecycleOwner = this
 
         // init retrofit
         val retrofit = Retrofit.Builder()
@@ -31,6 +33,17 @@ class MainActivity : AppCompatActivity() {
         val api = retrofit.create(CoinGeckoExchangeListApi::class.java)
         val getExchangeCall : Call<ArrayList<ExchangeResult.ExchangeItem>> = api.getExchangeLists(50, 1)
 
+        /**
+         *  RecyclerVIew Adapter Setup
+         */
+        val adapter = RvExchangeAdapter()
+        binding.rvList.adapter = adapter
+        binding.rvList.addItemDecoration(DividerItemDecoration(this, DividerItemDecoration.VERTICAL))
+
+        /**
+         * Loading Progress Bar
+         */
+        binding.isLoading = true
 
         getExchangeCall.enqueue(object : Callback<ArrayList<ExchangeResult.ExchangeItem>> {
 
@@ -39,27 +52,25 @@ class MainActivity : AppCompatActivity() {
                 response: Response<ArrayList<ExchangeResult.ExchangeItem>>
             ) {
                 Log.d("Response", "onResponse: ${response.body()?.get(0)?.name}")
-                attachRecyclerView(response.body()!!)
-
+                binding.isLoading = false
+                viewModel.updateData(response.body()!!)
             }
 
             override fun onFailure(
                 call: Call<ArrayList<ExchangeResult.ExchangeItem>>,
                 t: Throwable
             ) {
+                binding.isLoading = false
                 t.printStackTrace()
             }
         })
 
-
-    }
-
-
-    fun attachRecyclerView(lists : ArrayList<ExchangeResult.ExchangeItem>){
-
-        val adapter = RvExchangeAdapter()
-        adapter.update(lists)
-        binding.rvList.adapter = adapter
-        binding.rvList.addItemDecoration(DividerItemDecoration(this, DividerItemDecoration.VERTICAL))
+        /**
+         * The viewModel observer watches the dataset changes.
+         * Once dataset modification is detected, it will update
+         */
+        viewModel.data.observe(this, {
+            adapter.update(it)
+        })
     }
 }

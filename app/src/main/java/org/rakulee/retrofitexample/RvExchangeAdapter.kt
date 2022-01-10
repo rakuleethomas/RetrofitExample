@@ -9,7 +9,7 @@ import com.bumptech.glide.Glide
 import org.rakulee.retrofitexample.databinding.ItemExchangeListBinding
 
 class RvExchangeAdapter : RecyclerView.Adapter<RvExchangeAdapter.ViewHolder>() {
-    lateinit var lists : ArrayList<ExchangeResult.ExchangeItem>
+    var lists = ArrayList<ExchangeResult.ExchangeItem>()
 
     fun update(lists : ArrayList<ExchangeResult.ExchangeItem>) {
         this.lists = lists
